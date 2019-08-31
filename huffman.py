@@ -117,7 +117,7 @@ def find_insertion(pairs, count):
         if (val_count < count):
             return i
 
-    return -1 #insert at end of list
+    return len(pairs) #insert at end of list
 
 def get_count(obj):
     '''
