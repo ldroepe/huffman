@@ -1,3 +1,6 @@
+import os
+import sys
+import pickle
 import argparse
 
 class Node:
@@ -26,9 +29,42 @@ class Node:
 
 def main(**args):
 
-    tree = build_tree(args['f'])
+    efile = args['e'] #file to encode
+    dfile = args['d'] #file to decode
 
-    print(tree)
+    #encode
+    if efile:
+
+        #encode the file
+        tree = build_tree(efile)
+
+        print(sys.getsizeof(tree))
+
+        encoding = encode(efile, tree)
+        encoding = encoding.encode('utf-8')
+
+        print(sys.getsizeof(encoding))
+
+        outFile = open(os.path.splitext(efile)[0]+'.enc', 'wb')
+        
+        #write info
+        pickle.dump(tree, outFile)
+        outFile.write(encoding)
+    
+    #decode
+    elif dfile:
+
+        #read info
+        inFile = open(dfile, 'rb')
+
+        tree = pickle.load(inFile)
+        encoding = inFile.read()
+        encoding = encoding.decode('utf-8') #easier to work with strings
+
+        decoding = decode(tree, encoding)
+
+        outFile = open(os.path.splitext(dfile)[0]+'_dec.txt', 'w')
+        outFile.write(decoding)
 
 def build_tree(filename):
     '''
@@ -40,6 +76,7 @@ def build_tree(filename):
     '''
 
     counts = count_chars(filename)
+    characters = counts.keys() #list of characters in the file
     pairs = [(x, counts[x]) for x in counts]
 
     #sort values by count
@@ -62,6 +99,7 @@ def build_tree(filename):
 
 
     return pairs.pop()
+
 
 def count_chars(file):
     '''
@@ -135,10 +173,101 @@ def get_count(obj):
         
         return obj.count
 
+
+def encode(filename, tree):
+    '''
+    Actually encode the file that was specified
+
+    :param filename: name of file to encode
+    :param tree: encoding tree for filename
+    '''
+
+    inFile = open(filename)
+    character_encodings = {}
+    build_encodings(tree, character_encodings)
+
+    full_encoding = ''
+
+    for line in inFile:
+        for char in line:
+            
+            encoding = character_encodings.get(char, None)
+            full_encoding += encoding
+
+    return full_encoding
+
+def build_encodings(tree, character_encodings):
+    '''
+    Build the encodings for each character according to the encoding tree
+
+    :param tree: encoding / decoding tree
+    :param character_encodings: encodings of each character
+    '''
+
+    _encoding_helper(tree, character_encodings, '')
+    
+def _encoding_helper(current, character_encodings, encoding):
+    '''
+    Helper method to build_encodings
+    Recursively traverses encoding tree to find encodings of each character
+
+    :param current: current node in the tree
+    :param character_encodings: encodings of each character
+    :param encoding: current, working encoding of a character
+    '''
+
+    #stop the recursion
+    if current is None:
+        return
+
+    char = current.char
+
+    #place character in the character_encodings dict
+    if not(current.char is None):
+        character_encodings[char] = encoding
+
+    #look for characters in subtrees
+    if not(current.left is None):
+        _encoding_helper(current.left, character_encodings, encoding+'0')
+
+    if not(current.right is None):
+        _encoding_helper(current.right, character_encodings, encoding+'1')
+
+def decode(tree, encoding):
+    '''
+    Decode an encoded file with the tree that was provided
+
+    :param tree: encoding tree to be used for decoding
+    :param encoding: encoding to decode
+    :return: decoded file
+    '''
+
+    decoding = ''
+    current = tree
+
+    for char in encoding:
+
+        if char == '1':
+            current = current.right
+
+        elif char == '0':
+            current = current.left
+
+        if not(current.char is None):
+            
+            decoding += current.char
+            current = tree
+
+    return decoding
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description = 'Huffman Encoder')
-    parser.add_argument('-f', type=str, required=True, help='file to read text from')
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument('-e', type=str, help='encode a file')
+    group.add_argument('-d', type=str, help='decode a file')
 
     args = parser.parse_args()
 

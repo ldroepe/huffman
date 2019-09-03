@@ -1,1 +1,1 @@
-A simple implementation of the Huffman Encoding algorithm.
+A simple implementation of the Huffman encoding/decoding algorithm.
