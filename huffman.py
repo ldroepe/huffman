@@ -38,12 +38,8 @@ def main(**args):
         #encode the file
         tree = build_tree(efile)
 
-        print(sys.getsizeof(tree))
-
         encoding = encode(efile, tree)
         encoding = encoding.encode('utf-8')
-
-        print(sys.getsizeof(encoding))
 
         outFile = open(os.path.splitext(efile)[0]+'.enc', 'wb')
         
